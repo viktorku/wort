@@ -1,0 +1,7 @@
+[package]
+name = "wort"
+version = "0.1.0"
+authors = ["Viktor Kunovski <viktor@kunovski.com>"]
+edition = "2018"
+
+[dependencies]
