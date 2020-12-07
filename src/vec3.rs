@@ -1,6 +1,5 @@
 pub trait Length {
-    fn length(&self) -> f32;
-    fn length_squared(&self) -> f32;
+    fn length(self) -> f32;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -18,8 +17,8 @@ impl Vec3 {
     pub fn new(x: f32, y: f32, z: f32) -> Vec3 {
         Vec3 { x, y, z }
     }
-    pub fn dot(&self, other: &Vec3) -> f32 {
-        self.x * other.x + self.y + other.y + self.z + other.z
+    pub fn dot(self, other: Vec3) -> f32 {
+        self.x * other.x + self.y * other.y + self.z * other.z
     }
     pub fn cross(&self, other: &Vec3) -> Vec3 {
         Vec3 {
@@ -28,8 +27,8 @@ impl Vec3 {
             z: self.x * other.y - self.y * other.x,
         }
     }
-    pub fn unit_vector(&self) -> Vec3 {
-        *self / self.length()
+    pub fn normalize(self) -> Vec3 {
+        self / self.length()
     }
 }
 
@@ -50,17 +49,17 @@ impl std::ops::Neg for Vec3 {
     }
 }
 
-impl std::ops::AddAssign<&Vec3> for Vec3 {
-    fn add_assign(&mut self, other: &Vec3) {
+impl std::ops::AddAssign<Vec3> for Vec3 {
+    fn add_assign(&mut self, other: Vec3) {
         self.x += other.x;
         self.y += other.y;
         self.z += other.z;
     }
 }
 
-impl std::ops::Add<&Vec3> for Vec3 {
+impl std::ops::Add<Vec3> for Vec3 {
     type Output = Vec3;
-    fn add(self, other: &Vec3) -> Vec3 {
+    fn add(self, other: Vec3) -> Vec3 {
         Vec3 {
             x: self.x + other.x,
             y: self.y + other.y,
@@ -69,17 +68,17 @@ impl std::ops::Add<&Vec3> for Vec3 {
     }
 }
 
-impl std::ops::SubAssign<&Vec3> for Vec3 {
-    fn sub_assign(&mut self, other: &Vec3) {
+impl std::ops::SubAssign<Vec3> for Vec3 {
+    fn sub_assign(&mut self, other: Vec3) {
         self.x -= other.x;
         self.y -= other.y;
         self.z -= other.z;
     }
 }
 
-impl std::ops::Sub<&Vec3> for Vec3 {
+impl std::ops::Sub<Vec3> for Vec3 {
     type Output = Self;
-    fn sub(self, other: &Vec3) -> Vec3 {
+    fn sub(self, other: Vec3) -> Vec3 {
         Vec3 {
             x: self.x - other.x,
             y: self.y - other.y,
@@ -107,9 +106,9 @@ impl std::ops::MulAssign<f32> for Vec3 {
     }
 }
 
-impl std::ops::Mul<&Vec3> for Vec3 {
+impl std::ops::Mul<Vec3> for Vec3 {
     type Output = Self;
-    fn mul(self, other: &Vec3) -> Vec3 {
+    fn mul(self, other: Vec3) -> Vec3 {
         Self {
             x: self.x * other.x,
             y: self.y * other.y,
@@ -127,16 +126,12 @@ impl std::ops::DivAssign<f32> for Vec3 {
 impl std::ops::Div<f32> for Vec3 {
     type Output = Self;
     fn div(self, t: f32) -> Vec3 {
-        self * 1 as f32 / t
+        self * (1 as f32 / t)
     }
 }
 
 impl Length for Vec3 {
-    fn length(&self) -> f32 {
-        self.length_squared().sqrt()
-    }
-
-    fn length_squared(&self) -> f32 {
-        self.x.powi(2) + self.y.powi(2) + self.z.powi(2)
+    fn length(self) -> f32 {
+        self.dot(self).sqrt()
     }
 }
