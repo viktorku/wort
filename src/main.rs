@@ -1,3 +1,5 @@
+#![allow(clippy::needless_return)]
+
 use std::fs::File;
 use std::io::prelude::*;
 
@@ -7,9 +9,22 @@ use vec3::{Color, Point3, Vec3};
 mod ray;
 use ray::Ray;
 
-const U8_MULTIPLIER: f32 = 255.999;
+mod hit;
+use hit::{HitRecord, Hittable};
+
+mod sphere;
+use sphere::Sphere;
+
+const U8_MULTIPLIER: f64 = 255.999;
+
+const SPHERE: Sphere = Sphere::new(Vec3::new(0., 0., -1.), 0.5);
 
 fn ray_color(ray: Ray) -> Color {
+    let mut hit: HitRecord = Default::default();
+    if SPHERE.hit(&ray, 0., 1., &mut hit) {
+        let n = hit.normal.unwrap();
+        return 0.5 * Color::new(n.x + 1., n.y + 1., n.z + 1.);
+    }
     let unit_direction = ray.direction.normalize();
     let t = 0.5 * (unit_direction.y + 1.);
     (1. - t) * Color::new(1., 1., 1.) + t * Color::new(0.5, 0.7, 1.0)
@@ -30,9 +45,9 @@ fn main() -> std::io::Result<()> {
     let mut file = File::create("image.ppm")?;
 
     // Image
-    let aspect_ratio: f32 = 16. / 9.;
+    let aspect_ratio: f64 = 16. / 9.;
     let image_width: u16 = 400;
-    let image_height = (image_width as f32 / aspect_ratio) as u16;
+    let image_height = (image_width as f64 / aspect_ratio) as u16;
 
     // Camera
     let viewport_height = 2.;
@@ -56,8 +71,8 @@ fn main() -> std::io::Result<()> {
         stdout.flush()?;
 
         for i in 0..image_width {
-            let u = i as f32 / (image_width - 1) as f32;
-            let v = j as f32 / (image_height - 1) as f32;
+            let u = i as f64 / (image_width - 1) as f64;
+            let v = j as f64 / (image_height - 1) as f64;
 
             let ray = Ray::new(
                 origin,
