@@ -15,7 +15,11 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(self, ray: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+        // (𝐀+𝑡𝐛−𝐂)⋅(𝐀+𝑡𝐛−𝐂)=𝑟2
+        // 𝑡2𝐛⋅𝐛+2𝑡𝐛⋅(𝐀−𝐂)+(𝐀−𝐂)⋅(𝐀−𝐂)−𝑟2=0
+        // (−𝑏±√(𝑏2−4𝑎𝑐))/2𝑎 = −ℎ±√(ℎ2−𝑎𝑐)/𝑎
+
         let oc = ray.origin - self.center;
         let a = ray.direction.length_squared();
         let half_b = oc.dot(ray.direction);
@@ -23,6 +27,7 @@ impl Hittable for Sphere {
 
         let discriminant = half_b.powf(2.) - a * c;
         if discriminant < 0. {
+            // no solutions, ray doesn't hit the sphere
             return false;
         }
 
@@ -41,7 +46,8 @@ impl Hittable for Sphere {
 
         rec.t = Some(root);
         rec.p = Some(p);
-        rec.normal = Some((p - self.center) / self.radius);
+        let outward_normal = (p - self.center) / self.radius;
+        rec.set_face_normal(ray, outward_normal);
 
         return true;
     }

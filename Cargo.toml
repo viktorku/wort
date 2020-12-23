@@ -5,3 +5,5 @@ authors = ["Viktor Kunovski <viktor@kunovski.com>"]
 edition = "2018"
 
 [dependencies]
+num = "0.3"
+rand = "0.8.0"
