@@ -25,11 +25,23 @@ use sphere::Sphere;
 mod camera;
 use camera::Camera;
 
-fn ray_color(ray: Ray, world: &dyn Hittable) -> Color {
+fn ray_color(ray: Ray, world: &dyn Hittable, ray_bounce: u8) -> Color {
+    // If we've exceeded the ray bounce limit, no more light is gathered.
+    // Recursion guard for near objects (cracks)
+    if ray_bounce == 0 {
+        return Color::new(0., 0., 0.);
+    }
+
     let mut record: HitRecord = Default::default();
-    if world.hit(&ray, 0., f64::INFINITY, &mut record) {
+    if world.hit(&ray, 0.001, f64::INFINITY, &mut record) {
         let n = record.normal.unwrap();
-        return 0.5 * (n + Color::new(1., 1., 1.));
+        let p = record.p.unwrap();
+        // s = diffuse target from P: (S - P)
+        // TODO: parameterize diffusing methods
+        // let s = p + n + Vec3::random_in_unit_sphere().normalize();
+        let s = p + Vec3::random_in_hemisphere(&n);
+        let diffuse_ray = Ray::new(p, s - p);
+        return 0.5 * ray_color(diffuse_ray, world, ray_bounce - 1);
     }
     let unit_direction = ray.direction.normalize();
     let t = 0.5 * (unit_direction.y + 1.);
@@ -39,6 +51,8 @@ fn ray_color(ray: Ray, world: &dyn Hittable) -> Color {
 fn write_color(file: &mut File, color: &mut Color, samples_per_pixel: u8) -> std::io::Result<()> {
     // Divide the color by the number of samples to get the average
     *color /= samples_per_pixel as f64;
+    // Gamma-correct for gamma=2.0.
+    color.sqrt();
     writeln!(
         file,
         "{} {} {}",
@@ -52,7 +66,13 @@ fn write_color(file: &mut File, color: &mut Color, samples_per_pixel: u8) -> std
 
 fn main() -> std::io::Result<()> {
     let mut stdout = std::io::stdout();
-    let mut file = File::create("image.ppm")?;
+
+    // Don't run the program rls!
+    if cfg!(debug_assertions) {
+        return Ok(());
+    }
+
+    let mut file = File::create("image_hemisphere.ppm")?;
 
     // World
     let mut world = HittableList::new();
@@ -64,6 +84,7 @@ fn main() -> std::io::Result<()> {
     let image_width: u16 = 400;
     let image_height = (image_width as f64 / aspect_ratio) as u16;
     let samples_per_pixel = 100;
+    let max_ray_bounce_depth = 50;
 
     // Camera
     let cam = Camera::new(aspect_ratio);
@@ -85,7 +106,7 @@ fn main() -> std::io::Result<()> {
                 let v = (j as f64 + random::<f64>()) / (image_height - 1) as f64;
 
                 let ray = cam.get_ray(u, v);
-                pixel_color += ray_color(ray, &world);
+                pixel_color += ray_color(ray, &world, max_ray_bounce_depth);
             }
             write_color(&mut file, &mut pixel_color, samples_per_pixel)?;
         }

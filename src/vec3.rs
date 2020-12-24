@@ -1,3 +1,5 @@
+use rand::{random, thread_rng, Rng};
+
 pub trait Length {
     fn length(self) -> f64;
     fn length_squared(self) -> f64;
@@ -30,6 +32,40 @@ impl Vec3 {
     }
     pub fn normalize(self) -> Vec3 {
         self / self.length()
+    }
+    pub fn random() -> Vec3 {
+        Vec3::new(random::<f64>(), random::<f64>(), random::<f64>())
+    }
+    pub fn random_limit(min: f64, max: f64) -> Vec3 {
+        let mut rng = thread_rng();
+        Vec3::new(
+            rng.gen_range(min..max),
+            rng.gen_range(min..max),
+            rng.gen_range(min..max),
+        )
+    }
+    pub fn random_in_unit_sphere() -> Vec3 {
+        loop {
+            let point = Vec3::random_limit(-1., 1.);
+            if point.length_squared() < 1. {
+                return point;
+            }
+        }
+    }
+    pub fn random_in_hemisphere(normal: &Vec3) -> Vec3 {
+        let in_unit_sphere = Vec3::random_in_unit_sphere();
+        if in_unit_sphere.dot(*normal) > 0. {
+            // In the same hemisphere as the normal
+            in_unit_sphere
+        } else {
+            -in_unit_sphere
+        }
+    }
+    pub fn sqrt(&mut self) -> &Vec3 {
+        self.x = self.x.sqrt();
+        self.y = self.y.sqrt();
+        self.z = self.z.sqrt();
+        self
     }
 }
 
