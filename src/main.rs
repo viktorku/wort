@@ -14,7 +14,7 @@ mod ray;
 use ray::Ray;
 
 mod hit;
-use hit::{HitRecord, Hittable};
+use hit::Hittable;
 
 mod hittable_list;
 use hittable_list::HittableList;
@@ -32,10 +32,9 @@ fn ray_color(ray: Ray, world: &dyn Hittable, ray_bounce: u8) -> Color {
         return Color::new(0., 0., 0.);
     }
 
-    let mut record: HitRecord = Default::default();
-    if world.hit(&ray, 0.001, f64::INFINITY, &mut record) {
-        let n = record.normal.unwrap();
-        let p = record.p.unwrap();
+    if let Some(record) = world.hit(&ray, 0.001, f64::INFINITY) {
+        let n = record.normal;
+        let p = record.p;
         // s = diffuse target from P: (S - P)
         // TODO: parameterize diffusing methods
         // let s = p + n + Vec3::random_in_unit_sphere().normalize();

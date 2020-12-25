@@ -1,6 +1,6 @@
 use crate::vec3::{Vec3, Length};
 use crate::ray::Ray;
-use crate::hit::{HitRecord, Hittable};
+use crate::hit::{HitRecord, Hittable, set_face_normal};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Sphere {
@@ -15,7 +15,7 @@ impl Sphere {
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, rec: &mut HitRecord) -> bool {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         // (𝐀+𝑡𝐛−𝐂)⋅(𝐀+𝑡𝐛−𝐂)=𝑟2
         // 𝑡2𝐛⋅𝐛+2𝑡𝐛⋅(𝐀−𝐂)+(𝐀−𝐂)⋅(𝐀−𝐂)−𝑟2=0
         // (−𝑏±√(𝑏2−4𝑎𝑐))/2𝑎 = −ℎ±√(ℎ2−𝑎𝑐)/𝑎
@@ -28,7 +28,7 @@ impl Hittable for Sphere {
         let discriminant = half_b.powf(2.) - a * c;
         if discriminant < 0. {
             // no solutions, ray doesn't hit the sphere
-            return false;
+            return None;
         }
 
         let sqrtd = discriminant.sqrt();
@@ -38,18 +38,21 @@ impl Hittable for Sphere {
         if root < t_min || t_max < root {
             root = (-half_b + sqrtd) / a;
             if root < t_min || t_max < root {
-                return false;
+                return None;
             }
         }
 
         let p = ray.at(root);
 
-        rec.t = Some(root);
-        rec.p = Some(p);
         // normalized normal
         let outward_normal = (p - self.center) / self.radius;
-        rec.set_face_normal(ray, outward_normal);
+        let (front_face, normal) = set_face_normal(ray, outward_normal);
 
-        return true;
+        Some(HitRecord {
+            p,
+            t: root,
+            front_face,
+            normal,
+        })
     }
 }
