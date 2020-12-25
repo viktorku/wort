@@ -1,11 +1,11 @@
 use crate::hit::{Hittable, HitRecord};
 use crate::ray::{Ray};
-use std::rc::Rc;
+use std::sync::Arc;
 use std::vec::Vec;
 
 #[derive(Debug, Clone)]
 pub struct HittableList<T: Hittable> {
-    pub objects: Vec<Rc<T>>,
+    pub objects: Vec<Arc<T>>,
 }
 
 impl <T: Hittable> HittableList<T> {
@@ -19,7 +19,7 @@ impl <T: Hittable> HittableList<T> {
         self.objects.clear()
     }
 
-    pub fn add(&mut self, object: Rc<T>) {
+    pub fn add(&mut self, object: Arc<T>) {
         self.objects.push(object);
     }
 

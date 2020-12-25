@@ -2,13 +2,13 @@
 
 use std::fs::File;
 use std::io::prelude::*;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use num::clamp;
 use rand::random;
 
 mod vec3;
-use vec3::{Color, Point3, Vec3};
+use vec3::{Color, Vec3};
 
 mod ray;
 use ray::Ray;
@@ -75,8 +75,8 @@ fn main() -> std::io::Result<()> {
 
     // World
     let mut world = HittableList::new();
-    world.add(Rc::new(Sphere::new(Vec3::new(0., 0., -1.), 0.5)));
-    world.add(Rc::new(Sphere::new(Vec3::new(0., -100.5, -1.), 100.)));
+    world.add(Arc::new(Sphere::new(Vec3::new(0., 0., -1.), 0.5)));
+    world.add(Arc::new(Sphere::new(Vec3::new(0., -100.5, -1.), 100.)));
 
     // Image
     let aspect_ratio: f64 = 16. / 9.;
@@ -99,14 +99,15 @@ fn main() -> std::io::Result<()> {
         stdout.flush()?;
 
         for i in 0..image_width {
-            let mut pixel_color = Color::new(0., 0., 0.);
-            for _ in 0..samples_per_pixel {
-                let u = (i as f64 + random::<f64>()) / (image_width - 1) as f64;
-                let v = (j as f64 + random::<f64>()) / (image_height - 1) as f64;
-
-                let ray = cam.get_ray(u, v);
-                pixel_color += ray_color(ray, &world, max_ray_bounce_depth);
-            }
+            let mut pixel_color =
+                (0..samples_per_pixel)
+                    .into_iter()
+                    .fold(Color::new(0., 0., 0.), |acc, _| {
+                        let u = (i as f64 + random::<f64>()) / (image_width - 1) as f64;
+                        let v = (j as f64 + random::<f64>()) / (image_height - 1) as f64;
+                        let ray = cam.get_ray(u, v);
+                        acc + ray_color(ray, &world, max_ray_bounce_depth)
+                    });
             write_color(&mut file, &mut pixel_color, samples_per_pixel)?;
         }
     }
