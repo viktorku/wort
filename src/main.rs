@@ -2,17 +2,16 @@
 
 use std::fs::File;
 use std::io::prelude::*;
-use std::sync::Arc;
 use std::str::FromStr;
+use std::sync::Arc;
 
 use clap::{App, Arg};
 use num::clamp;
 use rand::random;
-use strum_macros::{EnumString, EnumVariantNames, IntoStaticStr};
 use strum::VariantNames;
 
 mod vec3;
-use vec3::{Color, Vec3};
+use vec3::{Color, Vec3, Point3};
 
 mod ray;
 use ray::Ray;
@@ -29,39 +28,23 @@ use sphere::Sphere;
 mod camera;
 use camera::Camera;
 
+mod material;
+use material::{DiffuseMethod, Lambertian, Metal};
 
-#[derive(Debug, Copy, Clone, PartialEq, EnumString, EnumVariantNames, IntoStaticStr)]
-#[strum(serialize_all = "kebab_case")]
-enum DiffuseMethod {
-    Simple,
-    Lambert,
-    Hemisphere
-}
+const BLACK: Color = Color::new(0., 0., 0.);
 
-fn ray_color(ray: Ray, world: &dyn Hittable, ray_bounce: u8, diffuse: DiffuseMethod) -> Color {
+fn ray_color(ray: Ray, world: &dyn Hittable, ray_bounce: u8) -> Color {
     // If we've exceeded the ray bounce limit, no more light is gathered.
     // Recursion guard for near objects (cracks)
     if ray_bounce == 0 {
-        return Color::new(0., 0., 0.);
+        return BLACK;
     }
 
     if let Some(record) = world.hit(&ray, 0.001, f64::INFINITY) {
-        let n = record.normal;
-        let p = record.p;
-        // s = diffuse target from P: (S - P)
-        let s = {
-            if diffuse == DiffuseMethod::Hemisphere {
-                p + Vec3::random_in_hemisphere(&n)
-            } else {
-                p + n + if diffuse == DiffuseMethod::Simple {
-                    Vec3::random_in_unit_sphere()
-                } else {
-                    Vec3::random_in_unit_sphere().normalize()
-                }
-            }
-        };
-        let diffuse_ray = Ray::new(p, s - p);
-        return 0.5 * ray_color(diffuse_ray, world, ray_bounce - 1, diffuse);
+        if let Some(scatter) = record.material.scatter(&ray, &record) {
+            return scatter.attenuation * ray_color(scatter.ray, world, ray_bounce - 1);
+        }
+        return BLACK;
     }
     let unit_direction = ray.direction.normalize();
     let t = 0.5 * (unit_direction.y + 1.);
@@ -72,7 +55,7 @@ fn write_color(file: &mut File, color: &mut Color, samples_per_pixel: u8) -> std
     // Divide the color by the number of samples to get the average
     *color /= samples_per_pixel as f64;
     // Gamma-correct for gamma=2.0.
-    color.sqrt();
+    *color = color.sqrt();
     writeln!(
         file,
         "{} {} {}",
@@ -93,7 +76,6 @@ fn main() -> std::io::Result<()> {
     }
 
     // Argument parsing
-
     let matches = App::new("wort")
         .version("0.1")
         .author("Viktor K. <viktor@kunovski.com>")
@@ -126,18 +108,40 @@ fn main() -> std::io::Result<()> {
 
     let diffuse_default = DiffuseMethod::Hemisphere.into();
     let diffuse_str = matches.value_of("diffuse").unwrap_or(diffuse_default);
-    let diffuse = DiffuseMethod::from_str(diffuse_str).unwrap();
+    let diffuse_method = DiffuseMethod::from_str(diffuse_str).unwrap();
 
-    let filename = format!("{}_{}.ppm", matches.value_of("filename").unwrap_or("image"), diffuse_str);
+    let filename = format!(
+        "{}_{}.ppm",
+        matches.value_of("filename").unwrap_or("image"),
+        diffuse_str
+    );
     let verbose = matches.is_present("verbose");
 
     eprintln!("Writing to {}", filename);
     let mut file = File::create(filename)?;
 
+    // Materials
+    let material_ground = Arc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0), diffuse_method));
+    let material_center = Arc::new(Lambertian::new(Color::new(0.4, 0.3, 0.6), diffuse_method));
+    let material_left = Arc::new(Metal::new(Color::new(0.8, 0.8, 0.8)));
+    let material_right = Arc::new(Metal::new(Color::new(0.8, 0.6, 0.2)));
+
+    // Objects
+    let planet = Arc::new(Sphere::new(
+        Point3::new(0., -100.5, -1.),
+        100.,
+        material_ground,
+    ));
+    let sphere_center = Arc::new(Sphere::new(Point3::new(0., 0., -1.), 0.5, material_center));
+    let sphere_left = Arc::new(Sphere::new(Point3::new(-1., 0.3, -1.5), 0.3, material_left));
+    let sphere_right = Arc::new(Sphere::new(Point3::new(1., 0., -1.), 0.5, material_right));
+
     // World
     let mut world = HittableList::new();
-    world.add(Arc::new(Sphere::new(Vec3::new(0., 0., -1.), 0.5)));
-    world.add(Arc::new(Sphere::new(Vec3::new(0., -100.5, -1.), 100.)));
+    world.add(planet);
+    world.add(sphere_center);
+    world.add(sphere_left);
+    world.add(sphere_right);
 
     // Image
     let aspect_ratio: f64 = 16. / 9.;
@@ -169,7 +173,7 @@ fn main() -> std::io::Result<()> {
                         let u = (i as f64 + random::<f64>()) / (image_width - 1) as f64;
                         let v = (j as f64 + random::<f64>()) / (image_height - 1) as f64;
                         let ray = cam.get_ray(u, v);
-                        acc + ray_color(ray, &world, max_ray_bounce_depth, diffuse)
+                        acc + ray_color(ray, &world, max_ray_bounce_depth)
                     });
             write_color(&mut file, &mut pixel_color, samples_per_pixel)?;
         }

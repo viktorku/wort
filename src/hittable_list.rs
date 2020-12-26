@@ -32,8 +32,8 @@ impl <T: Hittable> Hittable for HittableList<T> {
 
         for object in &self.objects {
             if let Some(rec) = object.hit(ray, t_min, closest_so_far) {
-                hit_record = Some(rec);
                 closest_so_far = rec.t;
+                hit_record = Some(rec);
             }
         }
 

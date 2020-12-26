@@ -1,16 +1,19 @@
 use crate::vec3::{Vec3, Length};
 use crate::ray::Ray;
+use crate::material::Material;
 use crate::hit::{HitRecord, Hittable, set_face_normal};
+use std::sync::Arc;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct Sphere {
     pub center: Vec3,
     pub radius: f64,
+    pub material: Arc<dyn Material>,
 }
 
 impl Sphere {
-    pub const fn new(center: Vec3, radius: f64) -> Sphere {
-        Sphere { center, radius }
+    pub fn new(center: Vec3, radius: f64, material: Arc<dyn Material>) -> Sphere {
+        Sphere { center, radius, material }
     }
 }
 
@@ -53,6 +56,7 @@ impl Hittable for Sphere {
             t: root,
             front_face,
             normal,
+            material: self.material.clone(), // copy semantics => new pointer, rc++
         })
     }
 }
