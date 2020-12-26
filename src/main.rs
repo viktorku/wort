@@ -3,9 +3,13 @@
 use std::fs::File;
 use std::io::prelude::*;
 use std::sync::Arc;
+use std::str::FromStr;
 
+use clap::{App, Arg};
 use num::clamp;
 use rand::random;
+use strum_macros::{EnumString, EnumVariantNames, IntoStaticStr};
+use strum::VariantNames;
 
 mod vec3;
 use vec3::{Color, Vec3};
@@ -25,7 +29,16 @@ use sphere::Sphere;
 mod camera;
 use camera::Camera;
 
-fn ray_color(ray: Ray, world: &dyn Hittable, ray_bounce: u8) -> Color {
+
+#[derive(Debug, Copy, Clone, PartialEq, EnumString, EnumVariantNames, IntoStaticStr)]
+#[strum(serialize_all = "kebab_case")]
+enum DiffuseMethod {
+    Simple,
+    Lambert,
+    Hemisphere
+}
+
+fn ray_color(ray: Ray, world: &dyn Hittable, ray_bounce: u8, diffuse: DiffuseMethod) -> Color {
     // If we've exceeded the ray bounce limit, no more light is gathered.
     // Recursion guard for near objects (cracks)
     if ray_bounce == 0 {
@@ -36,11 +49,19 @@ fn ray_color(ray: Ray, world: &dyn Hittable, ray_bounce: u8) -> Color {
         let n = record.normal;
         let p = record.p;
         // s = diffuse target from P: (S - P)
-        // TODO: parameterize diffusing methods
-        // let s = p + n + Vec3::random_in_unit_sphere().normalize();
-        let s = p + Vec3::random_in_hemisphere(&n);
+        let s = {
+            if diffuse == DiffuseMethod::Hemisphere {
+                p + Vec3::random_in_hemisphere(&n)
+            } else {
+                p + n + if diffuse == DiffuseMethod::Simple {
+                    Vec3::random_in_unit_sphere()
+                } else {
+                    Vec3::random_in_unit_sphere().normalize()
+                }
+            }
+        };
         let diffuse_ray = Ray::new(p, s - p);
-        return 0.5 * ray_color(diffuse_ray, world, ray_bounce - 1);
+        return 0.5 * ray_color(diffuse_ray, world, ray_bounce - 1, diffuse);
     }
     let unit_direction = ray.direction.normalize();
     let t = 0.5 * (unit_direction.y + 1.);
@@ -71,7 +92,47 @@ fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
-    let mut file = File::create("image_hemisphere.ppm")?;
+    // Argument parsing
+
+    let matches = App::new("wort")
+        .version("0.1")
+        .author("Viktor K. <viktor@kunovski.com>")
+        .about("a week(end) of ray tracing")
+        .arg(
+            Arg::with_name("diffuse")
+                .short("d")
+                .long("diffuse")
+                .value_name("DIFFUSE")
+                .help("Diffusing method")
+                .takes_value(true)
+                .possible_values(&DiffuseMethod::VARIANTS),
+        )
+        .arg(
+            Arg::with_name("filename")
+                .short("n")
+                .long("filename")
+                .value_name("FILE")
+                .help("Filename - defaults to `image`")
+                .takes_value(true),
+        )
+        .arg(
+            Arg::with_name("verbose")
+                .short("v")
+                .long("verbose")
+                .takes_value(false)
+                .help("Verbosity, prints remaining scanline"),
+        )
+        .get_matches();
+
+    let diffuse_default = DiffuseMethod::Hemisphere.into();
+    let diffuse_str = matches.value_of("diffuse").unwrap_or(diffuse_default);
+    let diffuse = DiffuseMethod::from_str(diffuse_str).unwrap();
+
+    let filename = format!("{}_{}.ppm", matches.value_of("filename").unwrap_or("image"), diffuse_str);
+    let verbose = matches.is_present("verbose");
+
+    eprintln!("Writing to {}", filename);
+    let mut file = File::create(filename)?;
 
     // World
     let mut world = HittableList::new();
@@ -95,7 +156,9 @@ fn main() -> std::io::Result<()> {
     writeln!(file, "255")?;
 
     for j in (0..image_height).rev() {
-        eprintln!("Scanlines remaining: {}", j);
+        if verbose {
+            eprintln!("Scanlines remaining: {}", j);
+        }
         stdout.flush()?;
 
         for i in 0..image_width {
@@ -106,7 +169,7 @@ fn main() -> std::io::Result<()> {
                         let u = (i as f64 + random::<f64>()) / (image_width - 1) as f64;
                         let v = (j as f64 + random::<f64>()) / (image_height - 1) as f64;
                         let ray = cam.get_ray(u, v);
-                        acc + ray_color(ray, &world, max_ray_bounce_depth)
+                        acc + ray_color(ray, &world, max_ray_bounce_depth, diffuse)
                     });
             write_color(&mut file, &mut pixel_color, samples_per_pixel)?;
         }
