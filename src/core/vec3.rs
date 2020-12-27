@@ -13,8 +13,17 @@ pub struct Vec3 {
     // w: f64
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ColorU32 {
+    pub x: u32,
+    pub y: u32,
+    pub z: u32,
+}
+
 pub type Point3 = Vec3;
 pub type Color = Vec3;
+
+const EPS: f64 = 1e-8;
 
 impl Vec3 {
     pub const fn new(x: f64, y: f64, z: f64) -> Vec3 {
@@ -69,8 +78,7 @@ impl Vec3 {
     }
     pub fn near_zero(&self) -> bool {
         // Return true if the vector is close to zero in all dimensions.
-        let s = 1e-8;
-        self.x.abs() < s && self.y.abs() < s && self.z.abs() < s
+        self.x.abs() < EPS && self.y.abs() < EPS && self.z.abs() < EPS
     }
     pub fn reflect(&self, normal: &Vec3) -> Vec3 {
         *self - 2. * self.dot(*normal) * *normal

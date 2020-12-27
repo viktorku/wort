@@ -1,7 +1,10 @@
-use crate::hit::{Hittable, HitRecord};
-use crate::ray::{Ray};
 use std::sync::Arc;
 use std::vec::Vec;
+
+use crate::core::{
+    hit::{HitRecord, Hittable},
+    ray::Ray,
+};
 
 #[derive(Debug, Clone)]
 pub struct HittableList<T: Hittable> {

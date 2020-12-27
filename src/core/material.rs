@@ -1,8 +1,10 @@
 use strum_macros::{EnumString, EnumVariantNames, IntoStaticStr};
 
-use crate::hit::HitRecord;
-use crate::ray::Ray;
-use crate::vec3::{Color, Vec3};
+use crate::core::{
+    hit::HitRecord,
+    ray::Ray,
+    vec3::{Color, Vec3},
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, EnumString, EnumVariantNames, IntoStaticStr)]
 #[strum(serialize_all = "kebab_case")]
@@ -40,12 +42,10 @@ impl Lambertian {
 impl Material for Lambertian {
     fn scatter(&self, _: &Ray, rec: &HitRecord) -> Option<Scatter> {
         let scatter_direction = {
-            let candidate = {
-                match self.diffuse_method {
-                    DiffuseMethod::Hemisphere => Vec3::random_in_hemisphere(&rec.normal),
-                    DiffuseMethod::Simple => rec.normal + Vec3::random_in_unit_sphere(),
-                    DiffuseMethod::Lambert => rec.normal + Vec3::random_unit_vector(),
-                }
+            let candidate = match self.diffuse_method {
+                DiffuseMethod::Hemisphere => Vec3::random_in_hemisphere(&rec.normal),
+                DiffuseMethod::Simple => rec.normal + Vec3::random_in_unit_sphere(),
+                DiffuseMethod::Lambert => rec.normal + Vec3::random_unit_vector(),
             };
             // Catch degenerate scatter direction
             if candidate.near_zero() {

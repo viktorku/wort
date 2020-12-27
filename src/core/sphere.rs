@@ -1,8 +1,10 @@
-use crate::vec3::{Vec3, Length};
-use crate::ray::Ray;
-use crate::material::Material;
-use crate::hit::{HitRecord, Hittable, set_face_normal};
 use std::sync::Arc;
+use crate::core::{
+    hit::{set_face_normal, HitRecord, Hittable},
+    material::Material,
+    ray::Ray,
+    vec3::{Length, Vec3},
+};
 
 #[derive(Debug, Clone)]
 pub struct Sphere {

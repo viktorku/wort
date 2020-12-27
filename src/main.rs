@@ -1,71 +1,32 @@
 #![allow(clippy::needless_return)]
 
-use std::fs::File;
-use std::io::prelude::*;
-use std::str::FromStr;
-use std::sync::Arc;
+use std::{io::prelude::*, sync::Arc};
 
-use clap::{App, Arg};
 use num::clamp;
 use rand::random;
-use strum::VariantNames;
+// use rayon::prelude::*;
 
-mod vec3;
-use vec3::{Color, Vec3, Point3};
+mod core;
+use crate::core::{
+    camera::Camera,
+    hittable_list::HittableList,
+    material::{Lambertian, Metal},
+    sphere::Sphere,
+    vec3::{Color, ColorU32, Point3},
+};
 
-mod ray;
-use ray::Ray;
+mod sinks;
+use sinks::Sink;
 
-mod hit;
-use hit::Hittable;
+mod arg;
+use arg::{parse_arguments, Args};
 
-mod hittable_list;
-use hittable_list::HittableList;
-
-mod sphere;
-use sphere::Sphere;
-
-mod camera;
-use camera::Camera;
-
-mod material;
-use material::{DiffuseMethod, Lambertian, Metal};
-
-const BLACK: Color = Color::new(0., 0., 0.);
-
-fn ray_color(ray: Ray, world: &dyn Hittable, ray_bounce: u8) -> Color {
-    // If we've exceeded the ray bounce limit, no more light is gathered.
-    // Recursion guard for near objects (cracks)
-    if ray_bounce == 0 {
-        return BLACK;
-    }
-
-    if let Some(record) = world.hit(&ray, 0.001, f64::INFINITY) {
-        if let Some(scatter) = record.material.scatter(&ray, &record) {
-            return scatter.attenuation * ray_color(scatter.ray, world, ray_bounce - 1);
-        }
-        return BLACK;
-    }
-    let unit_direction = ray.direction.normalize();
-    let t = 0.5 * (unit_direction.y + 1.);
-    (1. - t) * Color::new(1., 1., 1.) + t * Color::new(0.5, 0.7, 1.0)
-}
-
-fn write_color(file: &mut File, color: &mut Color, samples_per_pixel: u8) -> std::io::Result<()> {
-    // Divide the color by the number of samples to get the average
-    *color /= samples_per_pixel as f64;
-    // Gamma-correct for gamma=2.0.
-    *color = color.sqrt();
-    writeln!(
-        file,
-        "{} {} {}",
-        // Clamp if the average exceeds limits and convert to RGB scale
-        (255. * clamp(color.x, 0., 1.)) as u8,
-        (255. * clamp(color.y, 0., 1.)) as u8,
-        (255. * clamp(color.z, 0., 1.)) as u8
-    )?;
-    Ok(())
-}
+// Image
+const ASPECT_RATIO: f64 = 16. / 9.;
+const IMAGE_WIDTH: usize = 400;
+const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
+const SAMPLES_PER_PIXEL: usize = 100;
+const MAX_RAY_BOUNCE_DEPTH: usize = 50;
 
 fn main() -> std::io::Result<()> {
     let mut stdout = std::io::stdout();
@@ -76,49 +37,12 @@ fn main() -> std::io::Result<()> {
     }
 
     // Argument parsing
-    let matches = App::new("wort")
-        .version("0.1")
-        .author("Viktor K. <viktor@kunovski.com>")
-        .about("a week(end) of ray tracing")
-        .arg(
-            Arg::with_name("diffuse")
-                .short("d")
-                .long("diffuse")
-                .value_name("DIFFUSE")
-                .help("Diffusing method")
-                .takes_value(true)
-                .possible_values(&DiffuseMethod::VARIANTS),
-        )
-        .arg(
-            Arg::with_name("filename")
-                .short("n")
-                .long("filename")
-                .value_name("FILE")
-                .help("Filename - defaults to `image`")
-                .takes_value(true),
-        )
-        .arg(
-            Arg::with_name("verbose")
-                .short("v")
-                .long("verbose")
-                .takes_value(false)
-                .help("Verbosity, prints remaining scanline"),
-        )
-        .get_matches();
-
-    let diffuse_default = DiffuseMethod::Hemisphere.into();
-    let diffuse_str = matches.value_of("diffuse").unwrap_or(diffuse_default);
-    let diffuse_method = DiffuseMethod::from_str(diffuse_str).unwrap();
-
-    let filename = format!(
-        "{}_{}.ppm",
-        matches.value_of("filename").unwrap_or("image"),
-        diffuse_str
-    );
-    let verbose = matches.is_present("verbose");
-
-    eprintln!("Writing to {}", filename);
-    let mut file = File::create(filename)?;
+    let Args {
+        output,
+        filename,
+        diffuse_method,
+        verbose,
+    } = parse_arguments();
 
     // Materials
     let material_ground = Arc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0), diffuse_method));
@@ -143,42 +67,44 @@ fn main() -> std::io::Result<()> {
     world.add(sphere_left);
     world.add(sphere_right);
 
-    // Image
-    let aspect_ratio: f64 = 16. / 9.;
-    let image_width: u16 = 400;
-    let image_height = (image_width as f64 / aspect_ratio) as u16;
-    let samples_per_pixel = 100;
-    let max_ray_bounce_depth = 50;
-
     // Camera
-    let cam = Camera::new(aspect_ratio);
+    let cam = Camera::new(ASPECT_RATIO);
 
     // Render
+    let mut pixels: std::vec::Vec<ColorU32> = Vec::new();
 
-    writeln!(file, "P3")?;
-    writeln!(file, "{} {}", image_width, image_height)?;
-    writeln!(file, "255")?;
-
-    for j in (0..image_height).rev() {
+    for j in (0..IMAGE_HEIGHT).rev() {
         if verbose {
             eprintln!("Scanlines remaining: {}", j);
+            stdout.flush()?;
         }
-        stdout.flush()?;
 
-        for i in 0..image_width {
+        for i in 0..IMAGE_WIDTH {
             let mut pixel_color =
-                (0..samples_per_pixel)
+                (0..SAMPLES_PER_PIXEL)
                     .into_iter()
                     .fold(Color::new(0., 0., 0.), |acc, _| {
-                        let u = (i as f64 + random::<f64>()) / (image_width - 1) as f64;
-                        let v = (j as f64 + random::<f64>()) / (image_height - 1) as f64;
+                        let u = (i as f64 + random::<f64>()) / (IMAGE_WIDTH - 1) as f64;
+                        let v = (j as f64 + random::<f64>()) / (IMAGE_HEIGHT - 1) as f64;
                         let ray = cam.get_ray(u, v);
-                        acc + ray_color(ray, &world, max_ray_bounce_depth)
+                        acc + ray.color(&world, MAX_RAY_BOUNCE_DEPTH)
                     });
-            write_color(&mut file, &mut pixel_color, samples_per_pixel)?;
+
+            // Divide the color by the number of samples to get the average
+            pixel_color /= SAMPLES_PER_PIXEL as f64;
+            // Gamma-correct for gamma=2.0.
+            pixel_color = pixel_color.sqrt();
+
+            pixels.push(ColorU32 {
+                x: (255. * clamp(pixel_color.x, 0., 1.)) as u32,
+                y: (255. * clamp(pixel_color.y, 0., 1.)) as u32,
+                z: (255. * clamp(pixel_color.z, 0., 1.)) as u32,
+            });
         }
     }
-    file.flush()?;
 
-    Ok(())
+    match output {
+        Sink::File => sinks::file::write_to_file(filename.unwrap(), &pixels),
+        Sink::Window => sinks::window::draw_in_window(&pixels),
+    }
 }

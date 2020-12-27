@@ -1,7 +1,10 @@
-use crate::vec3::{Point3, Vec3};
-use crate::ray::Ray;
-use crate::material::Material;
 use std::sync::Arc;
+
+use crate::core::{
+    material::Material,
+    ray::Ray,
+    vec3::{Point3, Vec3},
+};
 
 #[derive(Debug, Clone)]
 pub struct HitRecord {
@@ -17,7 +20,11 @@ pub fn set_face_normal(ray: &Ray, outward_normal: Vec3) -> (bool, Vec3) {
     // the ray is hitting the front face if the normal is pointing
     // in the opposite direction of the ray
     let front_face = ray.direction.dot(outward_normal) < 0.;
-    let normal = if front_face { outward_normal } else { -outward_normal };
+    let normal = if front_face {
+        outward_normal
+    } else {
+        -outward_normal
+    };
     (front_face, normal)
 }
 
