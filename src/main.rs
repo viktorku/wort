@@ -4,7 +4,7 @@ use std::{io::prelude::*, sync::Arc, time::Instant};
 
 use num::clamp;
 use rand::random;
-// use rayon::prelude::*;
+use rayon::prelude::*;
 
 mod core;
 use crate::core::{
@@ -71,7 +71,7 @@ fn main() -> std::io::Result<()> {
     let cam = Camera::new(ASPECT_RATIO);
 
     // Render
-    let mut pixels: std::vec::Vec<ColorU32> = Vec::new();
+    let mut pixels: Vec<ColorU32> = Vec::new();
 
     let start = Instant::now();
     for j in (0..IMAGE_HEIGHT).rev() {
@@ -80,7 +80,7 @@ fn main() -> std::io::Result<()> {
             stdout.flush()?;
         }
 
-        for i in 0..IMAGE_WIDTH {
+        let par_iter = (0..IMAGE_WIDTH).into_par_iter().map(|i| {
             let mut pixel_color =
                 (0..SAMPLES_PER_PIXEL)
                     .into_iter()
@@ -90,18 +90,19 @@ fn main() -> std::io::Result<()> {
                         let ray = cam.get_ray(u, v);
                         acc + ray.color(&world, MAX_RAY_BOUNCE_DEPTH)
                     });
-
             // Divide the color by the number of samples to get the average
             pixel_color /= SAMPLES_PER_PIXEL as f64;
             // Gamma-correct for gamma=2.0.
             pixel_color = pixel_color.sqrt();
-
-            pixels.push(ColorU32 {
+            ColorU32 {
                 x: (255. * clamp(pixel_color.x, 0., 1.)) as u32,
                 y: (255. * clamp(pixel_color.y, 0., 1.)) as u32,
                 z: (255. * clamp(pixel_color.z, 0., 1.)) as u32,
-            });
-        }
+            }
+        });
+
+        let mut line_pixels: Vec<_>  = par_iter.collect();
+        pixels.append(&mut line_pixels);
     }
     let duration = start.elapsed();
     eprintln!("Ray tracing took {:.3}s", duration.as_secs_f64());
