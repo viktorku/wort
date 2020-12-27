@@ -1,6 +1,6 @@
 #![allow(clippy::needless_return)]
 
-use std::{io::prelude::*, sync::Arc};
+use std::{io::prelude::*, sync::Arc, time::Instant};
 
 use num::clamp;
 use rand::random;
@@ -73,6 +73,7 @@ fn main() -> std::io::Result<()> {
     // Render
     let mut pixels: std::vec::Vec<ColorU32> = Vec::new();
 
+    let start = Instant::now();
     for j in (0..IMAGE_HEIGHT).rev() {
         if verbose {
             eprintln!("Scanlines remaining: {}", j);
@@ -102,6 +103,8 @@ fn main() -> std::io::Result<()> {
             });
         }
     }
+    let duration = start.elapsed();
+    eprintln!("Ray tracing took {:.3}s", duration.as_secs_f64());
 
     match output {
         Sink::File => sinks::file::write_to_file(filename.unwrap(), &pixels),
