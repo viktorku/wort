@@ -23,7 +23,7 @@ use arg::{parse_arguments, Args};
 
 // Image
 const ASPECT_RATIO: f64 = 16. / 9.;
-const IMAGE_WIDTH: usize = 400;
+const IMAGE_WIDTH: usize = 800;
 const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
 const SAMPLES_PER_PIXEL: usize = 100;
 const MAX_RAY_BOUNCE_DEPTH: usize = 50;
@@ -71,16 +71,12 @@ fn main() -> std::io::Result<()> {
     let cam = Camera::new(ASPECT_RATIO);
 
     // Render
-    let mut pixels: Vec<ColorU32> = Vec::new();
 
     let start = Instant::now();
-    for j in (0..IMAGE_HEIGHT).rev() {
-        if verbose {
-            eprintln!("Scanlines remaining: {}", j);
-            stdout.flush()?;
-        }
+    // `par_bridge` doesn't preserve order
+    let par_iter_h = (0..IMAGE_HEIGHT).rev().collect::<Vec<usize>>().into_par_iter().map(|j| {
 
-        let par_iter = (0..IMAGE_WIDTH).into_par_iter().map(|i| {
+        let par_iter_w = (0..IMAGE_WIDTH).into_par_iter().map(|i| {
             let mut pixel_color =
                 (0..SAMPLES_PER_PIXEL)
                     .into_iter()
@@ -101,9 +97,11 @@ fn main() -> std::io::Result<()> {
             }
         });
 
-        let mut line_pixels: Vec<_>  = par_iter.collect();
-        pixels.append(&mut line_pixels);
-    }
+        par_iter_w.collect::<Vec<_>>()
+    });
+
+    let pixels: Vec<ColorU32> = par_iter_h.flatten().collect();
+
     let duration = start.elapsed();
     eprintln!("Ray tracing took {:.3}s", duration.as_secs_f64());
 
