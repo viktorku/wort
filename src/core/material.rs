@@ -1,4 +1,5 @@
-use strum_macros::{EnumString, EnumVariantNames, IntoStaticStr};
+use enum_iterator::IntoEnumIterator;
+use strum_macros::{EnumString, EnumVariantNames, IntoStaticStr, ToString};
 
 use crate::core::{
     hit::HitRecord,
@@ -6,7 +7,17 @@ use crate::core::{
     vec3::{Color, Vec3},
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, EnumString, EnumVariantNames, IntoStaticStr)]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    EnumString,
+    EnumVariantNames,
+    IntoStaticStr,
+    IntoEnumIterator,
+    ToString,
+)]
 #[strum(serialize_all = "kebab_case")]
 pub enum DiffuseMethod {
     Simple,
