@@ -13,15 +13,7 @@ pub struct Vec3 {
     // w: f64
 }
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct ColorU32 {
-    pub x: u32,
-    pub y: u32,
-    pub z: u32,
-}
-
 pub type Point3 = Vec3;
-pub type Color = Vec3;
 
 const EPS: f64 = 1e-8;
 
@@ -29,14 +21,14 @@ impl Vec3 {
     pub const fn new(x: f64, y: f64, z: f64) -> Vec3 {
         Vec3 { x, y, z }
     }
-    pub fn dot(self, other: Vec3) -> f64 {
-        self.x * other.x + self.y * other.y + self.z * other.z
+    pub fn dot(self, rhs: Vec3) -> f64 {
+        self.x * rhs.x + self.y * rhs.y + self.z * rhs.z
     }
-    pub fn cross(&self, other: &Vec3) -> Vec3 {
+    pub fn cross(&self, rhs: &Vec3) -> Vec3 {
         Vec3 {
-            x: self.y * other.z - self.z * other.y,
-            y: self.z * other.x - self.x * other.z,
-            z: self.x * other.y - self.y * other.x,
+            x: self.y * rhs.z - self.z * rhs.y,
+            y: self.z * rhs.x - self.x * rhs.z,
+            z: self.x * rhs.y - self.y * rhs.x,
         }
     }
     pub fn normalize(self) -> Vec3 {
@@ -103,71 +95,51 @@ impl std::fmt::Display for Vec3 {
 impl std::ops::Neg for Vec3 {
     type Output = Self;
     fn neg(self) -> Vec3 {
-        Self {
-            x: -self.x,
-            y: -self.y,
-            z: -self.z,
-        }
+        Vec3::new(-self.x, -self.y, -self.z)
     }
 }
 
 impl std::ops::AddAssign<Vec3> for Vec3 {
-    fn add_assign(&mut self, other: Vec3) {
-        self.x += other.x;
-        self.y += other.y;
-        self.z += other.z;
+    fn add_assign(&mut self, rhs: Vec3) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+        self.z += rhs.z;
     }
 }
 
 impl std::ops::Add<Vec3> for Vec3 {
     type Output = Vec3;
-    fn add(self, other: Vec3) -> Vec3 {
-        Vec3 {
-            x: self.x + other.x,
-            y: self.y + other.y,
-            z: self.z + other.z,
-        }
+    fn add(self, rhs: Vec3) -> Vec3 {
+        Vec3::new(self.x + rhs.x, self.y + rhs.y, self.z + rhs.z)
     }
 }
 
 impl std::ops::SubAssign<Vec3> for Vec3 {
-    fn sub_assign(&mut self, other: Vec3) {
-        self.x -= other.x;
-        self.y -= other.y;
-        self.z -= other.z;
+    fn sub_assign(&mut self, rhs: Vec3) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+        self.z -= rhs.z;
     }
 }
 
 impl std::ops::Sub<Vec3> for Vec3 {
     type Output = Self;
-    fn sub(self, other: Vec3) -> Vec3 {
-        Vec3 {
-            x: self.x - other.x,
-            y: self.y - other.y,
-            z: self.z - other.z,
-        }
+    fn sub(self, rhs: Vec3) -> Vec3 {
+        Vec3::new(self.x - rhs.x, self.y - rhs.y, self.z - rhs.z)
     }
 }
 
 impl std::ops::Mul<f64> for Vec3 {
     type Output = Self;
     fn mul(self, t: f64) -> Vec3 {
-        Vec3 {
-            x: self.x * t,
-            y: self.y * t,
-            z: self.z * t,
-        }
+        Vec3::new(self.x * t, self.y * t, self.z * t)
     }
 }
 
 impl std::ops::Mul<Vec3> for f64 {
     type Output = Vec3;
-    fn mul(self, v: Vec3) -> Vec3 {
-        Vec3 {
-            x: v.x * self,
-            y: v.y * self,
-            z: v.z * self,
-        }
+    fn mul(self, rhs: Vec3) -> Vec3 {
+        Vec3::new(self * rhs.x, self * rhs.y, self * rhs.z)
     }
 }
 
@@ -181,12 +153,8 @@ impl std::ops::MulAssign<f64> for Vec3 {
 
 impl std::ops::Mul<Vec3> for Vec3 {
     type Output = Self;
-    fn mul(self, other: Vec3) -> Vec3 {
-        Self {
-            x: self.x * other.x,
-            y: self.y * other.y,
-            z: self.z * other.z,
-        }
+    fn mul(self, rhs: Vec3) -> Vec3 {
+        Vec3::new(self.x * rhs.x, self.y * rhs.y, self.z * rhs.z)
     }
 }
 

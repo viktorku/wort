@@ -1,11 +1,7 @@
 use enum_iterator::IntoEnumIterator;
 use strum_macros::{EnumString, EnumVariantNames, IntoStaticStr, ToString};
 
-use crate::core::{
-    hit::HitRecord,
-    ray::Ray,
-    vec3::{Color, Vec3},
-};
+use crate::core::{color::Color, hit::HitRecord, ray::Ray, vec3::Vec3};
 
 #[derive(
     Debug,

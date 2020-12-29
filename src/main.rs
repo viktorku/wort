@@ -2,17 +2,17 @@
 
 use std::{io::prelude::*, sync::Arc, time::Instant};
 
-use num::clamp;
 use rand::random;
 use rayon::prelude::*;
 
 mod core;
 use crate::core::{
     camera::Camera,
+    color::Color,
     hittable_list::HittableList,
     material::{DiffuseMethod, Lambertian, Metal},
     sphere::Sphere,
-    vec3::{Color, ColorU32, Point3},
+    vec3::Point3,
 };
 
 mod sinks;
@@ -47,10 +47,10 @@ fn main() -> std::io::Result<()> {
     // TODO: make arg into a param struct
     let mut trace = |diffuse_method: &mut DiffuseMethod| -> std::io::Result<std::vec::Vec<_>> {
         // Materials
-        let material_ground = Arc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0), *diffuse_method));
-        let material_center = Arc::new(Lambertian::new(Color::new(0.4, 0.3, 0.6), *diffuse_method));
-        let material_left = Arc::new(Metal::new(Color::new(0.8, 0.8, 0.8), 0.1));
-        let material_right = Arc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 0.9));
+        let material_ground = Arc::new(Lambertian::new(Color::new_rgb(204, 204, 0), *diffuse_method));
+        let material_center = Arc::new(Lambertian::new(Color::new_hex(b"#b34d4d"), *diffuse_method));
+        let material_left = Arc::new(Metal::new(Color::new(0.8, 0.8, 0.8), 0.3));
+        let material_right = Arc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 1.));
 
         // Objects
         let planet = Arc::new(Sphere::new(
@@ -73,7 +73,7 @@ fn main() -> std::io::Result<()> {
         let cam = Camera::new(ASPECT_RATIO);
 
         // Render
-        let mut pixels: Vec<ColorU32> = Vec::new();
+        let mut pixels: Vec<Color> = Vec::with_capacity(IMAGE_WIDTH * IMAGE_HEIGHT);
 
         let start = Instant::now();
         for j in (0..IMAGE_HEIGHT).rev() {
@@ -95,12 +95,7 @@ fn main() -> std::io::Result<()> {
                 // Divide the color by the number of samples to get the average
                 pixel_color /= SAMPLES_PER_PIXEL as f64;
                 // Gamma-correct for gamma=2.0.
-                pixel_color = pixel_color.sqrt();
-                ColorU32 {
-                    x: (255. * clamp(pixel_color.x, 0., 1.)) as u32,
-                    y: (255. * clamp(pixel_color.y, 0., 1.)) as u32,
-                    z: (255. * clamp(pixel_color.z, 0., 1.)) as u32,
-                }
+                pixel_color.sqrt()
             });
 
             let mut line_pixels: Vec<_> = par_iter.collect();

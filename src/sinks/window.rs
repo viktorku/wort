@@ -1,11 +1,11 @@
-use crate::core::{material::DiffuseMethod, vec3::ColorU32};
+use crate::core::{color::Color, material::DiffuseMethod};
 use crate::{IMAGE_HEIGHT, IMAGE_WIDTH};
 use enum_iterator::IntoEnumIterator;
 use minifb::{Key, Window, WindowOptions};
 
 pub fn draw_in_window<F>(mut trace: F, diffuse_method: &mut DiffuseMethod) -> std::io::Result<()>
 where
-    F: FnMut(&mut DiffuseMethod) -> std::io::Result<std::vec::Vec<ColorU32>>,
+    F: FnMut(&mut DiffuseMethod) -> std::io::Result<std::vec::Vec<Color>>,
 {
     let mut pixels = trace(diffuse_method).unwrap();
 
@@ -27,15 +27,14 @@ where
     // Limit to max ~60 fps update rate
     window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
 
-    // eprintln!("buffer size: {}", buffer.len());
-    // eprintln!("pixels size: {}", pixels.len());
-
     let mut diffuse_method_iter = DiffuseMethod::into_enum_iter().cycle();
     eprintln!("Using {} diffuse method.", diffuse_method.to_string());
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
         for (i, pixel) in buffer.iter_mut().zip(&pixels) {
-            *i = (pixel.x << 16) | (pixel.y << 8) | pixel.z;
+            let c_u8 = pixel.as_u8_slice();
+            // ARGB but alpha ignored
+            *i = u32::from_be_bytes([0, c_u8[0], c_u8[1], c_u8[2]]);
         }
 
         if window.is_key_down(Key::D) {

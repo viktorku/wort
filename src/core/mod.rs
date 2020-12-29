@@ -1,4 +1,5 @@
 pub mod camera;
+pub mod color;
 pub mod hit;
 pub mod hittable_list;
 pub mod material;

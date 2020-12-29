@@ -1,6 +1,7 @@
 use crate::core::{
-    vec3::{Color, Point3, Vec3},
+    color::Color,
     hit::Hittable,
+    vec3::{Point3, Vec3},
 };
 
 const BLACK: Color = Color::new(0., 0., 0.);
@@ -35,5 +36,4 @@ impl Ray {
         let t = 0.5 * (unit_direction.y + 1.);
         (1. - t) * Color::new(1., 1., 1.) + t * Color::new(0.5, 0.7, 1.0)
     }
-
 }
