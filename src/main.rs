@@ -23,7 +23,7 @@ use arg::{parse_arguments, Args};
 
 // Image
 const ASPECT_RATIO: f64 = 16. / 9.;
-const IMAGE_WIDTH: usize = 400;
+const IMAGE_WIDTH: usize = 600;
 const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
 const SAMPLES_PER_PIXEL: usize = 100;
 const MAX_RAY_BOUNCE_DEPTH: usize = 50;
@@ -49,8 +49,8 @@ fn main() -> std::io::Result<()> {
         // Materials
         let material_ground = Arc::new(Lambertian::new(Color::new(0.8, 0.8, 0.0), *diffuse_method));
         let material_center = Arc::new(Lambertian::new(Color::new(0.4, 0.3, 0.6), *diffuse_method));
-        let material_left = Arc::new(Metal::new(Color::new(0.8, 0.8, 0.8)));
-        let material_right = Arc::new(Metal::new(Color::new(0.8, 0.6, 0.2)));
+        let material_left = Arc::new(Metal::new(Color::new(0.8, 0.8, 0.8), 0.1));
+        let material_right = Arc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 0.9));
 
         // Objects
         let planet = Arc::new(Sphere::new(
@@ -59,7 +59,7 @@ fn main() -> std::io::Result<()> {
             material_ground,
         ));
         let sphere_center = Arc::new(Sphere::new(Point3::new(0., 0., -1.), 0.5, material_center));
-        let sphere_left = Arc::new(Sphere::new(Point3::new(-1., 0.3, -1.5), 0.3, material_left));
+        let sphere_left = Arc::new(Sphere::new(Point3::new(-1., 0., -1.), 0.5, material_left));
         let sphere_right = Arc::new(Sphere::new(Point3::new(1., 0., -1.), 0.5, material_right));
 
         // World

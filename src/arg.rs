@@ -53,7 +53,7 @@ pub fn parse_arguments() -> Args {
 
     let diffuse_str = matches
         .value_of("diffuse")
-        .unwrap_or_else(|| DiffuseMethod::Hemisphere.into());
+        .unwrap_or_else(|| DiffuseMethod::Simple.into());
     let diffuse_method = DiffuseMethod::from_str(diffuse_str).unwrap();
 
     let output_str = matches
