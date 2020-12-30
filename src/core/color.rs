@@ -1,4 +1,5 @@
 use num::clamp;
+use rand::{random, thread_rng, Rng};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Color {
@@ -7,7 +8,7 @@ pub struct Color {
     pub b: f64,
 }
 
-const HEX_ERR: &'static str = "Invalid hex color provided";
+const HEX_ERR: &str = "Invalid hex color provided";
 
 impl Color {
     pub const fn new(r: f64, g: f64, b: f64) -> Color {
@@ -35,6 +36,17 @@ impl Color {
             (255. * clamp(self.g, 0., 1.)) as u8,
             (255. * clamp(self.b, 0., 1.)) as u8,
         ]
+    }
+    pub fn random() -> Color {
+        Color::new(random::<f64>(), random::<f64>(), random::<f64>())
+    }
+    pub fn random_limit(min: f64, max: f64) -> Color {
+        let mut rng = thread_rng();
+        Color::new(
+            rng.gen_range(min..max),
+            rng.gen_range(min..max),
+            rng.gen_range(min..max),
+        )
     }
 }
 

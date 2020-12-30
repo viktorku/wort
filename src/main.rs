@@ -1,19 +1,12 @@
 #![allow(clippy::needless_return)]
 
-use std::{io::prelude::*, sync::Arc, time::Instant};
+use std::{io::prelude::*, time::Instant};
 
 use rand::random;
 use rayon::prelude::*;
 
 mod core;
-use crate::core::{
-    camera::Camera,
-    color::Color,
-    hittable_list::HittableList,
-    material::{DiffuseMethod, Lambertian, Metal, Dielectric},
-    sphere::Sphere,
-    vec3::{Point3, Length},
-};
+use crate::core::{color::Color, material::DiffuseMethod};
 
 mod sinks;
 use sinks::Sink;
@@ -21,11 +14,14 @@ use sinks::Sink;
 mod arg;
 use arg::{parse_arguments, Args};
 
+mod scene;
+use scene::{generate_scene, random_scene, get_camera};
+
 // Image
-const ASPECT_RATIO: f64 = 16. / 9.;
+const ASPECT_RATIO: f64 = 3. / 2.;
 const IMAGE_WIDTH: usize = 600;
 const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
-const SAMPLES_PER_PIXEL: usize = 100;
+const SAMPLES_PER_PIXEL: usize = 500;
 const MAX_RAY_BOUNCE_DEPTH: usize = 50;
 
 fn main() -> std::io::Result<()> {
@@ -48,38 +44,8 @@ fn main() -> std::io::Result<()> {
     let mut trace = |diffuse_method: &mut DiffuseMethod| -> std::io::Result<std::vec::Vec<_>> {
         let start = Instant::now();
 
-        // Materials
-        let material_ground = Arc::new(Lambertian::new(Color::new_rgb(204, 204, 0), *diffuse_method));
-        let material_center = Arc::new(Lambertian::new(Color::new(0.1, 0.2, 0.5), *diffuse_method));
-        let material_left = Arc::new(Dielectric::new(1.5));
-        let material_right = Arc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 0.));
-
-        // Objects
-        let planet = Arc::new(Sphere::new(
-            Point3::new(0., -100.5, -1.),
-            100.,
-            material_ground,
-        ));
-        let sphere_center = Arc::new(Sphere::new(Point3::new(0., 0., -1.), 0.5, material_center));
-        let sphere_left = Arc::new(Sphere::new(Point3::new(-1., 0., -1.), 0.5, material_left.clone()));
-        let sphere_left_2 = Arc::new(Sphere::new(Point3::new(-1., 0., -1.), -0.45, material_left));
-        let sphere_right = Arc::new(Sphere::new(Point3::new(1., 0., -1.), 0.5, material_right));
-
-        // World
-        let mut world = HittableList::new();
-        world.add(planet);
-        world.add(sphere_center);
-        world.add(sphere_left);
-        world.add(sphere_left_2);
-        world.add(sphere_right);
-
-        // Camera
-        let lookfrom = Point3::new(3., 3., 2.);
-        let lookat = Point3::new(0., 0., -1.);
-        let vup = Point3::new(0., 1., 0.);
-        let dist_to_focus = (lookfrom - lookat).length();
-        let aperture = 2.0;
-        let cam = Camera::new(lookfrom, lookat, vup, 20., ASPECT_RATIO, aperture, dist_to_focus);
+        let world = random_scene(diffuse_method);
+        let camera = get_camera();
 
         // Render
         let mut pixels: Vec<Color> = Vec::with_capacity(IMAGE_WIDTH * IMAGE_HEIGHT);
@@ -96,7 +62,7 @@ fn main() -> std::io::Result<()> {
                         .fold(Color::new(0., 0., 0.), |acc, _| {
                             let u = (i as f64 + random::<f64>()) / (IMAGE_WIDTH - 1) as f64;
                             let v = (j as f64 + random::<f64>()) / (IMAGE_HEIGHT - 1) as f64;
-                            let ray = cam.get_ray(u, v);
+                            let ray = camera.get_ray(u, v);
                             acc + ray.color(&world, MAX_RAY_BOUNCE_DEPTH)
                         });
                 // Divide the color by the number of samples to get the average
