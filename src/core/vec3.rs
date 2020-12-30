@@ -65,6 +65,17 @@ impl Vec3 {
             -in_unit_sphere
         }
     }
+    pub fn random_in_unit_disk() -> Vec3 {
+        let mut rng = thread_rng();
+        loop {
+            let x = rng.gen_range(-1.0..1.);
+            let y = rng.gen_range(-1.0..1.);
+            let p = Vec3::new(x, y, 0.);
+            if p.length_squared() < 1. {
+                return p;
+            }
+        }
+    }
     pub fn sqrt(&self) -> Vec3 {
         Vec3::new(self.x.sqrt(), self.y.sqrt(), self.z.sqrt())
     }

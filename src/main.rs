@@ -12,7 +12,7 @@ use crate::core::{
     hittable_list::HittableList,
     material::{DiffuseMethod, Lambertian, Metal, Dielectric},
     sphere::Sphere,
-    vec3::Point3,
+    vec3::{Point3, Length},
 };
 
 mod sinks;
@@ -74,10 +74,12 @@ fn main() -> std::io::Result<()> {
         world.add(sphere_right);
 
         // Camera
-        let lookfrom = Point3::new(-2., 2., 1.);
+        let lookfrom = Point3::new(3., 3., 2.);
         let lookat = Point3::new(0., 0., -1.);
         let vup = Point3::new(0., 1., 0.);
-        let cam = Camera::new(lookfrom, lookat, vup, 90., ASPECT_RATIO);
+        let dist_to_focus = (lookfrom - lookat).length();
+        let aperture = 2.0;
+        let cam = Camera::new(lookfrom, lookat, vup, 20., ASPECT_RATIO, aperture, dist_to_focus);
 
         // Render
         let mut pixels: Vec<Color> = Vec::with_capacity(IMAGE_WIDTH * IMAGE_HEIGHT);
