@@ -75,6 +75,15 @@ impl Vec3 {
     pub fn reflect(&self, normal: &Vec3) -> Vec3 {
         *self - 2. * self.dot(*normal) * *normal
     }
+    pub fn refract(&self, normal: &Vec3, etai_over_etat: f64) -> Vec3 {
+        // 𝐑′⊥=𝜂/𝜂′(𝐑+cos𝜃𝐧)
+        // 𝐑′⊥=𝜂/𝜂′(𝐑+(−𝐑⋅𝐧)𝐧)
+        // 𝐑′∥ = −√(|1−𝐑′⊥|2)𝐧
+        let cos_theta = (-*self).dot(*normal).min(1.);
+        let r_perp = etai_over_etat * (*self + cos_theta * *normal);
+        let r_paral = -((1. - r_perp.length_squared()).abs().sqrt()) * *normal;
+        r_perp + r_paral
+    }
 }
 
 impl Length for Vec3 {

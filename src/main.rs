@@ -10,7 +10,7 @@ use crate::core::{
     camera::Camera,
     color::Color,
     hittable_list::HittableList,
-    material::{DiffuseMethod, Lambertian, Metal},
+    material::{DiffuseMethod, Lambertian, Metal, Dielectric},
     sphere::Sphere,
     vec3::Point3,
 };
@@ -48,9 +48,9 @@ fn main() -> std::io::Result<()> {
     let mut trace = |diffuse_method: &mut DiffuseMethod| -> std::io::Result<std::vec::Vec<_>> {
         // Materials
         let material_ground = Arc::new(Lambertian::new(Color::new_rgb(204, 204, 0), *diffuse_method));
-        let material_center = Arc::new(Lambertian::new(Color::new_hex(b"#b34d4d"), *diffuse_method));
-        let material_left = Arc::new(Metal::new(Color::new(0.8, 0.8, 0.8), 0.3));
-        let material_right = Arc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 1.));
+        let material_center = Arc::new(Lambertian::new(Color::new(0.1, 0.2, 0.5), *diffuse_method));
+        let material_left = Arc::new(Dielectric::new(1.5));
+        let material_right = Arc::new(Metal::new(Color::new(0.8, 0.6, 0.2), 0.));
 
         // Objects
         let planet = Arc::new(Sphere::new(
@@ -59,7 +59,8 @@ fn main() -> std::io::Result<()> {
             material_ground,
         ));
         let sphere_center = Arc::new(Sphere::new(Point3::new(0., 0., -1.), 0.5, material_center));
-        let sphere_left = Arc::new(Sphere::new(Point3::new(-1., 0., -1.), 0.5, material_left));
+        let sphere_left = Arc::new(Sphere::new(Point3::new(-1., 0., -1.), 0.5, material_left.clone()));
+        let sphere_left_2 = Arc::new(Sphere::new(Point3::new(-1., 0., -1.), -0.4, material_left));
         let sphere_right = Arc::new(Sphere::new(Point3::new(1., 0., -1.), 0.5, material_right));
 
         // World
@@ -67,6 +68,7 @@ fn main() -> std::io::Result<()> {
         world.add(planet);
         world.add(sphere_center);
         world.add(sphere_left);
+        world.add(sphere_left_2);
         world.add(sphere_right);
 
         // Camera

@@ -1,5 +1,6 @@
 use enum_iterator::IntoEnumIterator;
 use strum_macros::{EnumString, EnumVariantNames, IntoStaticStr, ToString};
+use rand::random;
 
 use crate::core::{color::Color, hit::HitRecord, ray::Ray, vec3::Vec3};
 
@@ -90,5 +91,55 @@ impl Material for Metal {
         } else {
             None
         }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct Dielectric {
+    /// Index of refraction:
+    ///  - Air: 1.0
+    ///  - Glass: 1.3 - 1.7
+    ///  - Diamond: 2.4
+    pub ir: f64,
+}
+
+impl Dielectric {
+    pub fn new(ir: f64) -> Dielectric {
+        Dielectric { ir }
+    }
+    fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
+        // Use Schlick's approximation for reflectance.
+        let r0 = ((1. - ref_idx) / (1. + ref_idx)).powf(2.);
+        r0 + (1. - r0) * (1. - cosine).powf(5.)
+    }
+}
+
+impl Material for Dielectric {
+    fn scatter(&self, ray_in: &Ray, rec: &HitRecord) -> Option<Scatter> {
+        let attenuation = Color::new_hex(b"#FFFFFF");
+        let refraction_ratio = if rec.front_face {
+            1. / self.ir
+        } else {
+            self.ir
+        };
+        let unit_direction = ray_in.direction.normalize();
+
+        let cos_theta = (-unit_direction).dot(rec.normal).min(1.);
+        let sin_theta = (1. - cos_theta*cos_theta).sqrt();
+
+        let cannot_refract = refraction_ratio * sin_theta > 1.;
+
+        let direction = if cannot_refract
+            || Dielectric::reflectance(cos_theta, refraction_ratio) > random::<f64>()
+        {
+            unit_direction.reflect(&rec.normal)
+        } else {
+            unit_direction.refract(&rec.normal, refraction_ratio)
+        };
+
+        Some(Scatter {
+            attenuation,
+            ray: Ray::new(rec.p, direction),
+        })
     }
 }
