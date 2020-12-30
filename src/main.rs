@@ -46,6 +46,8 @@ fn main() -> std::io::Result<()> {
 
     // TODO: make arg into a param struct
     let mut trace = |diffuse_method: &mut DiffuseMethod| -> std::io::Result<std::vec::Vec<_>> {
+        let start = Instant::now();
+
         // Materials
         let material_ground = Arc::new(Lambertian::new(Color::new_rgb(204, 204, 0), *diffuse_method));
         let material_center = Arc::new(Lambertian::new(Color::new(0.1, 0.2, 0.5), *diffuse_method));
@@ -60,7 +62,7 @@ fn main() -> std::io::Result<()> {
         ));
         let sphere_center = Arc::new(Sphere::new(Point3::new(0., 0., -1.), 0.5, material_center));
         let sphere_left = Arc::new(Sphere::new(Point3::new(-1., 0., -1.), 0.5, material_left.clone()));
-        let sphere_left_2 = Arc::new(Sphere::new(Point3::new(-1., 0., -1.), -0.4, material_left));
+        let sphere_left_2 = Arc::new(Sphere::new(Point3::new(-1., 0., -1.), -0.45, material_left));
         let sphere_right = Arc::new(Sphere::new(Point3::new(1., 0., -1.), 0.5, material_right));
 
         // World
@@ -72,12 +74,13 @@ fn main() -> std::io::Result<()> {
         world.add(sphere_right);
 
         // Camera
-        let cam = Camera::new(ASPECT_RATIO);
+        let lookfrom = Point3::new(-2., 2., 1.);
+        let lookat = Point3::new(0., 0., -1.);
+        let vup = Point3::new(0., 1., 0.);
+        let cam = Camera::new(lookfrom, lookat, vup, 90., ASPECT_RATIO);
 
         // Render
         let mut pixels: Vec<Color> = Vec::with_capacity(IMAGE_WIDTH * IMAGE_HEIGHT);
-
-        let start = Instant::now();
         for j in (0..IMAGE_HEIGHT).rev() {
             if verbose {
                 eprintln!("Scanlines remaining: {}", j);
@@ -103,6 +106,7 @@ fn main() -> std::io::Result<()> {
             let mut line_pixels: Vec<_> = par_iter.collect();
             pixels.append(&mut line_pixels);
         }
+
         let duration = start.elapsed();
         eprintln!("Ray tracing took {:.3}s", duration.as_secs_f64());
         Ok(pixels)
