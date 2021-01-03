@@ -66,7 +66,7 @@ pub fn parse_arguments() -> Args {
     } else if output != Sink::File {
         None
     } else {
-        panic!("Provide a valid filename if using file output!")
+        Some("image.ppm".into())
     };
 
     let verbose = matches.is_present("verbose");

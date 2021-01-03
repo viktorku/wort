@@ -21,7 +21,7 @@ use scene::{generate_scene, random_scene, get_camera};
 const ASPECT_RATIO: f64 = 3. / 2.;
 const IMAGE_WIDTH: usize = 600;
 const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as usize;
-const SAMPLES_PER_PIXEL: usize = 500;
+const SAMPLES_PER_PIXEL: usize = 10;
 const MAX_RAY_BOUNCE_DEPTH: usize = 50;
 
 fn main() -> std::io::Result<()> {
