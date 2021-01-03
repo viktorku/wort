@@ -1,11 +1,13 @@
-use std::{fs::File, io::prelude::*, time::Instant};
+use std::{fs::File, path::Path, io::prelude::*, time::Instant};
 
 use crate::core::color::Color;
 use crate::{IMAGE_HEIGHT, IMAGE_WIDTH};
 
 pub fn write_to_file(filename: String, pixels: &[Color]) -> std::io::Result<()> {
+    let path = Path::new("renders").join("staging");
+    std::fs::create_dir_all(&path)?;
     eprintln!("Writing to {}", filename);
-    let mut file = File::create(filename)?;
+    let mut file = File::create(path.join(filename))?;
 
     let start = Instant::now();
     writeln!(file, "P3")?;

@@ -1,6 +1,8 @@
-# WORT - a Week(end) of Ray Tracing
+# WORT - a Week(end) Of Ray Tracing
 
 This is yet another implemention of the [Ray Tracing in One Weekend](https://raytracing.github.io/) tutorial/book. The original implementation is in C++ so I translated the code in a hopefully idiomatic Rust, which I also learned in parallel.
+
+![A bunch of balls](renders/image.png)
 
 ## Some extra features:
 
@@ -13,12 +15,12 @@ This is yet another implemention of the [Ray Tracing in One Weekend](https://ray
 
 - Don't bother running the tracer in debug mode, as it's painfully slow
 - Image output can be a PPM file or a framebuffer window
-- There are a couple CLI arguments, run `--help` to see or check the code out
+- There are a couple of CLI arguments, run `--help` to see or check the code out
 
 ## TODO:
 
 - Reported rendering time above is on 2015 MacBook Pro, but add times for i9-9900K (should be ~4 times faster?), and M1 silicon for an interesting comparison
-- There are many parameters (such as camera positioning, dielectrics reflecitivity, object poeses, etc.) that can be made configurable via the framebuffer window or the CLI
+- There are many parameters (such as camera positioning, FOV, dielectrics reflectivity, object poses, etc.) that can be made configurable via the framebuffer window or the CLI
 - Implement the second and third part
 - Play around with AVX/SIMD?
 - ...
