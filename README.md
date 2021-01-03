@@ -6,7 +6,7 @@ This is yet another implemention of the [Ray Tracing in One Weekend](https://ray
 
 - Usage of simple framebuffer window ([`minifb`](https://crates.io/crates/minifb)) to draw the image and experiment with different diffuse methods via key presses
 - Single threaded C++ implementation by Shirley is slightly faster (15.8s with either `-02` or `-03` optimizations) than single threaded Rust (18.6s) on the final random scene
-- Rayon parallelizes tracing the ray along the X/width axis and gained 3.7-4 time speed up (5.3s)
+- Rayon parallelizes tracing the ray along the X/width axis and gained 3.7-4 times speed up (5.3s)
 - Rust lacks reflection so string-enum mapping and iterating had to be done via a custom crate [`strum`](https://crates.io/crates/strum)
 
 ## Running notes:
@@ -17,6 +17,7 @@ This is yet another implemention of the [Ray Tracing in One Weekend](https://ray
 
 ## TODO:
 
+- Reported rendering time above is on 2015 MacBook Pro, but add times for i9-9900K (should be ~4 times faster?), and M1 silicon for an interesting comparison
 - There are many parameters (such as camera positioning, dielectrics reflecitivity, object poeses, etc.) that can be made configurable via the framebuffer window or the CLI
 - Implement the second and third part
 - Play around with AVX/SIMD?
